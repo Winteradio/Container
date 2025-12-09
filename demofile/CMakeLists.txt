@@ -1,0 +1,41 @@
+# ------ Set the basic options for the demo project ------- #
+message(STATUS "# Set the basic options for the demo project")
+
+cmake_minimum_required(VERSION 3.20)
+project(ContainerDemo LANGUAGES CXX)
+
+# ------ Create the executable program ------ #
+if (WIN32)
+	message(STATUS "- Demo Platform : Windows")
+	add_executable(${PROJECT_NAME} WIN32)
+else ()
+	message(STATUS "- Demo Platform : Others")
+	add_executable(${PROJECT_NAME})
+endif()
+
+# ------ Set the project options ------ #
+include(${CMAKE_SOURCE_DIR}/external/CMake/Project.cmake)
+project_options()
+
+# ------ Add the sub modules ------ #
+message(STATUS "- Demo : Add the Log project")
+
+set(LOG_DEMO_FILE OFF)
+add_subdirectory(${CMAKE_SOURCE_DIR}/external/Log build)
+
+# ------ Set the properties the executable program ------ #
+set(MAIN_DIR ${CMAKE_CURRENT_SOURCE_DIR})
+set(EXTERNAL_DIR ${CMAKE_SOURCE_DIR}/external)
+
+set(HEADER_LIST 
+	${MAIN_DIR}/../include
+	${EXTERNAL_DIR}
+)
+
+target_sources(${PROJECT_NAME} PRIVATE
+	${MAIN_DIR}/main.cpp
+)
+
+target_include_directories(${PROJECT_NAME} PUBLIC ${HEADER_LIST})
+target_link_libraries(${PROJECT_NAME} PUBLIC LogProject)
+set_target_properties(${PROJECT_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
