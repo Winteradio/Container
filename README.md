@@ -1,157 +1,205 @@
-# Header-only Variant Project
+# WTR Container Library
 
-**Duration:** 2025/03/30 → 2025/03/31  
-**Skills:** C++, CMake
+A high-performance, custom C++ container library designed for game engine development and performance-critical applications. This library provides STL-like containers with control over memory allocation via a custom `Arena` allocator and robust implementations of common data structures.
 
----
+## 📦 Features
 
-## 📋 Summary
-This project involves creating a custom `Variant` class to replace the `std::variant` class in environments where C++17 is not available. It was specifically designed to parse and manage Style JSON expressions efficiently using modern C++ techniques.
+  * **Namespace**: All classes are encapsulated within the `wtr` namespace.
+  * **Custom Memory Management**: Most containers support a custom `Allocator` template argument (defaulting to `wtr::Arena`).
+  * **STL-Compatible Iterators**: Supports range-based for loops, forward/reverse iterators, and const iterators.
+  * **Header-Only (mostly)**: Template-heavy design for easy integration.
 
----
+## 🛠 Containers & Utilities
 
-## 🛠️ Technology Stack and Libraries
+| Component | Description | Implementation Details |
+| :--- | :--- | :--- |
+| **`DynamicArray`** | Resizable array (like `std::vector`). | Supports `EmplaceBack`, `Reserve`, and move semantics. |
+| **`StaticArray`** | Fixed-size array (like `std::array`). | Compile-time size check, stack-allocated storage. |
+| **`List`** | Doubly Linked List (like `std::list`). | Supports `Splice`, `Remove`, and efficient insertions. |
+| **`HashMap`** | Key-Value store (like `std::unordered_map`). | **Robin Hood Hashing** (Open Addressing) for cache locality. |
+| **`HashSet`** | Unique key set (like `std::unordered_set`). | **Robin Hood Hashing** (Open Addressing). |
+| **`Variant`** | Type-safe union (like `std::variant`). | Supports types with non-trivial destructors and deep copying. |
+| **`Arena`** | Memory Allocator. | Wrapper for allocation strategies. |
 
-- **Language:**
-  - C++
-- **Libraries (for testing):**
-  - Log Project
+## 🚀 Getting Started
 
----
+### Prerequisites
 
-## 📝 Concept Explanation
+  * C++17 or higher (Required for `if constexpr`, `std::conditional_t`, etc.).
 
-### Why Create a Custom Variant?
+### Installation
 
-- **Compatibility:**
-  - The `std::variant` class is only available in C++17 and later. This custom solution provides a `Variant` class for projects using earlier C++ standards.
+1.  Copy the `include/` directory to your project.
+2.  Include the necessary headers.
+3.  Ensure `Arena.cpp` is compiled with your project implementation.
 
-- **Limitations of Type Enum with Union:**
-  - A simple type enumeration combined with `union` is a possible alternative. However, this approach restricts types to predefined enum values and requires manual updates when adding new types, leading to scalability issues.
+-----
 
-- **Optimized Libraries:**
-  - Libraries like Mapbox's Style JSON use custom variant implementations for performance optimization, which inspired this project.
+## 📖 Usage Examples
 
-### Key Features of the Variant Class
+### 1\. HashMap
 
-- **Header-only Implementation:**
-  - The project is lightweight and easy to integrate without external dependencies.
+A high-performance hash map using Robin Hood hashing to minimize variance in probe lengths.
 
-- **Template Metaprogramming:**
-  - Designed for compile-time type safety and efficiency using techniques like:
-    - `EnableIf`
-    - `IsSame`
-    - Recursive template specialization
-
-- **Aligned Memory Management:**
-  - Uses `alignof`, `alignas`, and custom memory structures to manage padding and alignment efficiently, avoiding unnecessary memory overhead.
-
----
-
-## 🔍 Key Insights from the Project
-
-### Challenges with Type Enum and Union
-- Using a type enum requires:
-  - Adding a new enum value for each type.
-  - Writing additional case-handling logic for each new type.
-- The manual overhead makes it unsuitable for dynamic or extensible designs.
-
-### Template Metaprogramming Techniques
-1. **Recursive Type Calculations:**
-   - Techniques like `SizeCalculator` and `AlignCalculator` recursively calculate the size and alignment of types in a parameter pack.
-
-2. **Alignment (`alignof`):**
-   - Determines the required memory alignment for types to ensure efficient memory access and avoid unnecessary padding.
-
-3. **Type Indexing:**
-   - The `IndexOf` method identifies the position of a type in the parameter pack for runtime type checking.
-
-4. **Memory Safety:**
-   - A custom destroy mechanism ensures proper cleanup of the contained value during destruction.
-
-### Insights into `alignof` and Memory Padding
-- **Alignment Basics:**
-  - `alignof` retrieves the alignment requirement of a type, determining how memory addresses are calculated for efficient access.
-
-- **Padding Example:**
-  - For a struct containing `char` and `int`, memory alignment could require padding:
-    - `char` aligns to 1 byte.
-    - `int` aligns to 4 bytes.
-    - Padding ensures memory accesses align with the larger type, minimizing CPU cycles.
-
-- **Optimization:**
-  - Struct fields should be ordered by alignment size to reduce padding and improve performance.
-
----
-
-## 🚀 Implementation Highlights
-
-### Custom Utilities
-- **`EnableIf` and `IsSame`:**
-  - Fully implemented without external libraries.
-
-- **Recursive Template Specialization:**
-  - `SizeCalculator` and `AlignCalculator` compute size and alignment at compile-time using recursive specialization.
-
-- **TypeList and Matchers:**
-  - Used to manage type lists and dynamically match runtime types to compile-time constructs.
-
-### Example Usage of `Variant`
 ```cpp
-#include "Variant.h"
+#include "HashMap.h"
+#include <iostream>
 
-int main() {
-    wtr::Variant<int, std::string> variant;
+void ExampleHashMap() {
+    // Key: int, Value: string
+    wtr::HashMap<int, std::string> map;
 
-    // Set an integer value
-    variant.Set(42);
-    std::cout << "Variant contains: " << variant.Get<int>() << std::endl;
+    // Insertion
+    map[1] = "Apple";
+    map.Emplace(2, "Banana");
 
-    // Set a string value
-    variant.Set(std::string("Hello, World!"));
-    std::cout << "Variant contains: " << variant.Get<std::string>() << std::endl;
+    // Modification
+    map[1] = "Apricot";
 
-    return 0;
+    // Iteration
+    for (const auto& pair : map) {
+        std::cout << "ID: " << pair.first << ", Name: " << pair.second << std::endl;
+    }
+
+    // Safe Access
+    if (map.Find(2) != map.End()) {
+        std::cout << "Found: " << map.At(2) << std::endl;
+    }
 }
 ```
 
----
+#### Custom Struct Keys
 
-## 🧠 Lessons Learned
-- **Template Specialization:**
-  - Deep understanding of complete and partial template specialization.
-- **Alignment Optimization:**
-  - Efficient memory management by leveraging alignment and padding concepts.
-- **Compile-time Calculations:**
-  - Use of recursive templates for parameter pack processing.
+To use custom structs as keys, define a **Hasher** and a **Comparer** (optional if `operator==` is defined).
 
----
+```cpp
+struct Point { 
+    int x, y; 
+    bool operator==(const Point& o) const { return x == o.x && y == o.y; }
+};
 
-## ✨ Future Work
-- **Performance Benchmarking:**
-  - Compare against `std::variant` in C++17 for runtime efficiency.
-- **Error Handling Improvements:**
-  - Enhance runtime error reporting when type mismatches occur.
-- **Extend Type Support:**
-  - Add support for non-trivial types like containers or user-defined structs.
+struct PointHasher {
+    size_t operator()(const Point& p) const {
+        return std::hash<int>()(p.x) ^ (std::hash<int>()(p.y) << 1);
+    }
+};
 
----
+wtr::HashMap<Point, int, PointHasher> pointMap;
+```
 
-## 📜 License
+### 2\. HashSet
+
+A set implementation sharing the same underlying Robin Hood Hash Table logic as `HashMap`.
+
+```cpp
+#include "HashSet.h"
+
+void ExampleHashSet() {
+    wtr::HashSet<int> set;
+    
+    set.Insert(10);
+    set.Insert(20);
+    set.Insert(10); // Duplicate, will be ignored
+
+    // Removal
+    set.Erase(20);
+
+    for (const auto& val : set) {
+        // ...
+    }
+}
+```
+
+### 3\. DynamicArray
+
+A contiguous dynamic array similar to `std::vector`.
+
+```cpp
+#include "DynamicArray.h"
+
+void ExampleArray() {
+    wtr::DynamicArray<int> arr;
+    arr.Reserve(10);
+
+    arr.PushBack(1);
+    arr.EmplaceBack(2);
+
+    // Range-based for loop
+    for (int val : arr) {
+        // ...
+    }
+
+    // Random Access
+    arr[0] = 5;
+}
+```
+
+### 4\. Variant
+
+A type-safe union that can store one of several specified types. It handles object lifecycles (constructors/destructors) automatically.
+
+```cpp
+#include "Variant.h"
+#include <vector>
+
+void ExampleVariant() {
+    // Can hold an int, a float, or a vector of ints
+    wtr::Variant<int, float, std::vector<int>> var;
+
+    var.Set(10);
+    bool isInt = var.Is<int>(); // true
+
+    var.Set(3.14f);
+    float val = var.Get<float>();
+
+    // Supports complex types
+    var.Set(std::vector<int>{1, 2, 3});
+}
+```
+
+### 5\. StaticArray
+
+A wrapper around a raw array providing bounds checking (via assert) and STL-compatible iterators.
+
+```cpp
+#include "StaticArray.h"
+
+void ExampleStaticArray() {
+    // Fixed size of 5
+    Memory::StaticArray<int, 5> arr = {1, 2, 3}; // Remaining elements zero-initialized
+
+    arr[0] = 10;
+    
+    // Bounds check asserts in debug mode
+    // arr[10] = 5; // Crashes
+}
+```
+
+-----
+
+## ⚙️ Architecture Details
+
+### Robin Hood Hashing (`HashTable.h`)
+
+The `HashMap` and `HashSet` utilize **Open Addressing** with **Robin Hood Hashing**.
+
+  * **Slot Structure**: Stores `Data` and `psl` (Probe Sequence Length).
+  * **Insertion Logic**: If a new element has a higher probe count (PSL) than the element currently occupying a slot, they are swapped. The displaced element continues to look for a spot.
+  * **Benefit**: Reduces the variance of search times and improves cache hits compared to standard chaining or linear probing.
+
+### Variant (`Variant.h`)
+
+Implemented using `AlignedStorage` and variadic templates. It uses a recursive `TypeMatcher` struct to handle Copy, Move, and Destroy operations for the active type in the storage union.
+
+### Custom Allocation (`Arena`)
+
+The containers allow injecting an `Allocator` type.
+
+  * Default: `wtr::Arena`
+  * Functions: `Allocate(size)`, `Deallocate(ptr)`
+  * This structure allows for easy replacement with Pool Allocators or Stack Allocators for engine integration.
+
+-----
+
+## 📄 License
 This project is open-source and licensed under the MIT License.
-
----
-
-## 📂 Project Structure
-```
-VariantProject/
-├── include/
-│   └── Variant.h  // Header-only Variant implementation
-├── test/
-│   └── main.cpp   // Test cases for the Variant class
-└── README.md      // Project documentation
-```
-
----
-
-Feel free to contribute or raise issues for further improvements!
