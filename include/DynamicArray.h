@@ -20,7 +20,7 @@ namespace wtr
 		{
 		public :
 			using ContainerType = std::conditional_t<Const, const DynamicArray, DynamicArray>;
-			using ElementType = std::conditional_t<Const, const T, T>;
+			using ValueType = std::conditional_t<Const, const T, T>;
 
 			BaseIterator(ContainerType& refArray, const size_t index)
 				: m_array(&refArray)
@@ -95,12 +95,12 @@ namespace wtr
 				return !(*this == other);
 			}
 
-			ElementType* operator->() const
+			ValueType* operator->() const
 			{
 				return &(**this);
 			}
 
-			ElementType& operator*() const
+			ValueType& operator*() const
 			{
 				if constexpr (Reverse)
 				{
@@ -131,7 +131,7 @@ namespace wtr
 		using ConstReverseIterator = BaseIterator<true, true>;
 
 	public :
-		using ElementType = T;
+		using ValueType = T;
 		using AllocatorType = Allocator;
 
 		public :
