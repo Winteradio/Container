@@ -7,7 +7,7 @@
 #include <type_traits>
 #include <utility>
 
-namespace Memory
+namespace wtr
 {
 	template<typename T, size_t Count>
 	class StaticArray
@@ -129,6 +129,8 @@ namespace Memory
 		using ConstReverseIterator = BaseIterator<true, true>;
 
 	public	:
+		using ElementType = T;
+
 		StaticArray() = default;
 		StaticArray(const std::initializer_list<T>& initList)
 		{

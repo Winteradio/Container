@@ -258,6 +258,13 @@ namespace wtr
 		using ConstReverseIterator = BaseIterator<true, true>;
 
 	public :
+		using KeyType = Key;
+		using ElementType = Data;
+		using HasherType = Hasher;
+		using ComparerType = Comparer;
+		using SelectorType = Selector;
+		using AllocatorType = Allocator;
+
 		HashTable()
 			: m_slotList()
 			, m_count(0)
