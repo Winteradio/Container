@@ -33,10 +33,10 @@ namespace wtr
 
 		Value& operator[](const Key& key)
 		{
-			auto itr = Find(key);
-			if (itr == End())
+			auto itr = this->Find(key);
+			if (itr == this->End())
 			{
-				auto inserted = Emplace(key, Value{}).first;
+				auto inserted = this->Emplace(key, Value{}).first;
 				
 				return inserted->second;
 			}
@@ -49,18 +49,18 @@ namespace wtr
 	public :
 		Value& At(const Key& key)
 		{
-			auto itr = Find(key);
+			auto itr = this->Find(key);
 
-			assert(itr != End() && "Invalid Key");
+			assert(itr != this->End() && "Invalid Key");
 
 			return itr->second;
 		}
 
 		const Value& At(const Key& key) const
 		{
-			auto itr = Find(key);
+			auto itr = this->Find(key);
 
-			assert(itr != End() && "Invalid Key");
+			assert(itr != this->End() && "Invalid Key");
 
 			return itr->second;
 		}
