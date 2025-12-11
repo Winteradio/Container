@@ -29,7 +29,7 @@ namespace wtr
 		using Base = HashTable<Key, std::pair<Key, Value>, Hasher, Comparer, Selector, Allocator>;
 		using Base::HashTable;
 
-		using ValueType = Value;
+		using MappedType = Value;
 
 		Value& operator[](const Key& key)
 		{

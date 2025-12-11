@@ -259,7 +259,7 @@ namespace wtr
 
 	public :
 		using KeyType = Key;
-		using ElementType = Data;
+		using ValueType = Data;
 		using HasherType = Hasher;
 		using ComparerType = Comparer;
 		using SelectorType = Selector;
