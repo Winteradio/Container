@@ -64,7 +64,7 @@ namespace wtr
 
 			template<typename... Args>
 			Slot(const int16_t psl, Args&&... args)
-				: data(std::forward<Args>(args)...)
+				: data{ std::forward<Args>(args)... }
 				, psl(psl)
 			{}
 
@@ -78,7 +78,6 @@ namespace wtr
 
 				return *this;
 			}
-
 			Slot& operator=(Slot&& other) noexcept
 			{
 				if (this != &other)
@@ -403,20 +402,6 @@ namespace wtr
 		}
 
 		template<typename... Args>
-		std::pair<Iterator, bool> TryEmplace(const Key& key, Args&&... args)
-		{
-			auto itr = Find(key);
-			if (itr != End())
-			{
-				return std::make_pair(itr, false);
-			}
-			else
-			{
-				return Emplace(std::forward<Args>(args)...);
-			}
-		}
-
-		template<typename... Args>
 		std::pair<Iterator, bool> Emplace(Args&&... args)
 		{
 			if (m_count>= MaxSize() * LOAD_FACTOR)
@@ -500,7 +485,8 @@ namespace wtr
 			}
 
 			const size_t maxIndex = MaxSize();
-			size_t length = (maxIndex + last.m_index - first.m_index) % maxIndex;
+			size_t length = maxIndex + last.m_index - first.m_index;
+			length = (length > maxIndex) && (0 == length % maxIndex) ? maxIndex : length;
 
 			for (size_t offset = 0; offset < length; offset++)
 			{
@@ -534,7 +520,8 @@ namespace wtr
 
 				firstIndex = (nextIndex + 1) % maxIndex;
 				lastIndex = (lastIndex + 1) % maxIndex;
-				length = (maxIndex + lastIndex - firstIndex) % maxIndex;
+				length = maxIndex + lastIndex - firstIndex;
+				length = (length > maxIndex) && (0 == length % maxIndex) ? maxIndex : length;
 			}
 
 			return Iterator(*this, first.m_index, true);

@@ -33,6 +33,25 @@ namespace wtr
 				, m_index(other.m_index)
 			{}
 
+			template<bool ReverseOther>
+			BaseIterator(const BaseIterator<Const, ReverseOther>& other)
+				: m_array(other.m_array)
+				, m_index()
+			{
+				if constexpr (!Reverse && ReverseOther)
+				{
+					m_index = other.m_index - 1;
+				}
+				else if constexpr (Reverse && !ReverseOther)
+				{
+					m_index = other.m_index + 1;
+				}
+				else
+				{
+					m_index = other.m_index;
+				}
+			}
+
 			~BaseIterator() = default;
 
 			BaseIterator& operator++()
@@ -467,6 +486,31 @@ namespace wtr
 			return Iterator(*this, pos.m_index);
 		}
 
+		Iterator Insert(ConstIterator pos, Iterator first, Iterator last)
+		{
+			if (first == last)
+			{
+				return Iterator(*this, pos.m_index);
+			}
+
+			const size_t diffIndex = (last.m_index - first.m_index);
+			const size_t newSize = diffIndex + m_size;
+			Resize(newSize);
+
+			for (size_t index = m_size - 1; index > pos.m_index + diffIndex; index--)
+			{
+				m_data[index] = std::move(m_data[index - diffIndex]);
+			}
+
+			for (auto itr = first; itr != last; itr++)
+			{
+				const size_t index = pos.m_index + itr.m_index - first.m_index;
+				m_data[index] = *itr;
+			}
+
+			return Iterator(*this, pos.m_index);
+		}
+
 		Iterator Insert(ConstIterator pos, const std::initializer_list<T>& initList)
 		{
 			const size_t offset = initList.size();
@@ -488,12 +532,18 @@ namespace wtr
 
 		Iterator Erase(Iterator pos)
 		{
-			return Erase(pos, ++pos);
+			auto first = pos;
+			auto last = pos;
+			++last;
+			return Erase(first, last);
 		}
 
 		Iterator Erase(ConstIterator pos)
 		{
-			return Erase(pos, ++pos);
+			auto first = pos;
+			auto last = pos;
+			++last;
+			return Erase(first, last);
 		}
 
 		Iterator Erase(ConstIterator first, ConstIterator last)
