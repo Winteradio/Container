@@ -3,10 +3,6 @@
 
 #include "HashTable.h"
 
-#include <unordered_map>
-
-std::unordered_map<int, int> map;
-
 namespace wtr
 {
 	template<typename Key, typename Value>
@@ -63,6 +59,20 @@ namespace wtr
 			assert(itr != this->End() && "Invalid Key");
 
 			return itr->second;
+		}
+
+		template<typename... Args>
+		std::pair<typename Base::HashTable::Iterator, bool> TryEmplace(const Key& key, Args&&... args)
+		{
+			auto itr = this->Find(key);
+			if (itr != this->End())
+			{
+				return std::make_pair(itr, false);
+			}
+			else
+			{
+				return this->Emplace(key, Value{ std::forward<Args>(args)... });
+			}
 		}
 	};
 };

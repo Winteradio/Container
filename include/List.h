@@ -247,7 +247,7 @@ namespace wtr
 
 		void Splice(const Iterator pos, List<T>& other)
 		{
-			if (this == &other)
+			if (this == &other || other.Empty())
 			{
 				return;
 			}
@@ -276,7 +276,7 @@ namespace wtr
 
 		void Splice(const Iterator pos, List<T>& other, const Iterator itr)
 		{
-			if (pos == itr)
+			if (pos == itr || other.Empty())
 			{
 				return;
 			}
