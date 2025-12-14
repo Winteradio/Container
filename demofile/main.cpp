@@ -618,7 +618,7 @@ void StaticArrayTest()
 		LOGINFO() << "------ Basic Access & Fill Test ------";
 
 		// Create static array of size 5
-		Memory::StaticArray<int, 5> arr;
+		wtr::StaticArray<int, 5> arr;
 
 		LOGINFO() << "Size : " << arr.Size(); // Always 5
 
@@ -641,7 +641,7 @@ void StaticArrayTest()
 		LOGINFO() << "------ Initializer List & Iterator Test ------";
 
 		// Initializer list creation (less than size fills remainder with default)
-		Memory::StaticArray<std::string, 3> arr = { "Apple", "Banana" };
+		wtr::StaticArray<std::string, 3> arr = { "Apple", "Banana" };
 
 		LOGINFO() << "Size : " << arr.Size();
 
@@ -692,7 +692,7 @@ void StaticArrayTest()
 		};
 
 		LOGINFO() << "[Create Array with Default Constructors]";
-		Memory::StaticArray<Object, 2> arr; // Default Constructor x 2
+		wtr::StaticArray<Object, 2> arr; // Default Constructor x 2
 
 		LOGINFO() << "[Assign R-Value]";
 		arr[0] = Object(10); // Constructor(10) -> Move Assign -> Destructor(10)
@@ -705,10 +705,10 @@ void StaticArrayTest()
 	{
 		LOGINFO() << "------ Copy & Move Semantics Test ------";
 
-		Memory::StaticArray<int, 3> original = { 1, 2, 3 };
+		wtr::StaticArray<int, 3> original = { 1, 2, 3 };
 
 		// Copy Constructor
-		Memory::StaticArray<int, 3> copyArr = original;
+		wtr::StaticArray<int, 3> copyArr = original;
 		LOGINFO() << "Copy Index 0 : " << copyArr[0];
 
 		// Modify Copy
@@ -718,7 +718,7 @@ void StaticArrayTest()
 
 		// Move Constructor
 		// StaticArray Move is element-wise move, not pointer swap.
-		Memory::StaticArray<int, 3> moveArr = std::move(original);
+		wtr::StaticArray<int, 3> moveArr = std::move(original);
 		LOGINFO() << "Move Index 0 : " << moveArr[0];
 
 		// If objects were used, they would be in a moved-from state.
@@ -729,7 +729,7 @@ void StaticArrayTest()
 	{
 		LOGINFO() << "------ Const Access Test ------";
 
-		const Memory::StaticArray<int, 3> constArr = { 100, 200, 300 };
+		const wtr::StaticArray<int, 3> constArr = { 100, 200, 300 };
 
 		LOGINFO() << "Const Front : " << constArr.Front();
 		LOGINFO() << "Const Back : " << constArr.Back();

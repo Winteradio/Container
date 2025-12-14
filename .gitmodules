@@ -1,0 +1,6 @@
+[submodule "external/Log"]
+	path = external/Log
+	url = https://github.com/Winteradio/Log.git
+[submodule "external/CMake"]
+	path = external/CMake
+	url = https://github.com/Winteradio/CMake.git
