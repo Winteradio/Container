@@ -90,6 +90,16 @@ namespace wtr
 
 				return *this;
 			}
+			
+			bool operator==(const Slot& other) const
+			{
+				return data == other.data && psl == other.psl;
+			}
+
+			bool operator!=(const Slot& other) const
+			{
+				return !(*this == other);
+			}
 		};
 
 		template<bool Const, bool Reverse>
@@ -316,6 +326,16 @@ namespace wtr
 			return *this;
 		}
 
+		bool operator==(const HashTable& other) const
+		{
+			return m_slotList == other.m_slotList && m_count == other.m_count;
+		}
+
+		bool operator!=(const HashTable& other) const
+		{
+			return !(*this == other);
+		}
+
 	public :
 		size_t Size() const
 		{
@@ -350,8 +370,7 @@ namespace wtr
 				}
 
 				slot.psl = 0;
-				auto& key = Selector()(slot.data);
-				size_t index = Hasher()(key) % newSlotList.Size();
+				size_t index = Hasher()(Selector()(slot.data)) % newSlotList.Size();
 
 				while (true)
 				{
@@ -389,8 +408,7 @@ namespace wtr
 	public :
 		std::pair<Iterator, bool> Insert(const Data& data)
 		{
-			const auto& key = Selector()(data);
-			auto itr = Find(key);
+			auto itr = Find(Selector()(data));
 			if (itr != End())
 			{
 				return std::make_pair(itr, false);
@@ -486,7 +504,7 @@ namespace wtr
 
 			const size_t maxIndex = MaxSize();
 			size_t length = maxIndex + last.m_index - first.m_index;
-			length = (length > maxIndex) && (0 == length % maxIndex) ? maxIndex : length;
+			length = (length > maxIndex) && (0 == length % maxIndex) ? maxIndex : length % maxIndex;
 
 			for (size_t offset = 0; offset < length; offset++)
 			{
@@ -495,7 +513,7 @@ namespace wtr
 				auto& oldSlot = m_slotList[index];
 				if (oldSlot.psl != -1)
 				{
-					Slot garbageSlot = std::move(oldSlot);
+					oldSlot.psl = -1;
 					m_count--;
 				}
 			}
@@ -521,7 +539,7 @@ namespace wtr
 				firstIndex = (nextIndex + 1) % maxIndex;
 				lastIndex = (lastIndex + 1) % maxIndex;
 				length = maxIndex + lastIndex - firstIndex;
-				length = (length > maxIndex) && (0 == length % maxIndex) ? maxIndex : length;
+				length = (length > maxIndex) && (0 == length % maxIndex) ? maxIndex : length % maxIndex;
 			}
 
 			return Iterator(*this, first.m_index, true);
@@ -592,13 +610,12 @@ namespace wtr
 			while (true)
 			{
 				auto& slot = m_slotList[index];
-				if (slot.psl == -1 || psl > slot.psl)
+				if (slot.psl == -1 || psl > static_cast<size_t>(slot.psl))
 				{
 					return endIndex;
 				}
 
-				auto& slotKey = Selector()(slot.data);
-				if (Comparer()(key, slotKey))
+				if (Comparer()(key, Selector()(slot.data)))
 				{
 					return index;
 				}

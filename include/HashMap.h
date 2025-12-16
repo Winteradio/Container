@@ -42,6 +42,15 @@ namespace wtr
 			}
 		}
 
+		const Value& operator[](const Key& key) const
+		{
+			auto itr = this->Find(key);
+
+			assert(itr != this->End() && "Invalid Key");
+
+			return itr->second;
+		}
+
 	public :
 		Value& At(const Key& key)
 		{
