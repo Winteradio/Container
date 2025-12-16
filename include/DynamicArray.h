@@ -6,6 +6,8 @@
 #include <utility>
 #include <initializer_list>
 #include <type_traits>
+#include <functional>
+#include <queue>
 
 #include "Arena.h"
 
@@ -548,6 +550,11 @@ namespace wtr
 
 		Iterator Erase(ConstIterator first, ConstIterator last)
 		{
+			if (first == End() || first == last)
+			{
+				return End();
+			}
+
 			if (this != first.m_array || this != last.m_array)
 			{
 				return End();
@@ -567,6 +574,133 @@ namespace wtr
 			m_size -= length;
 
 			return Iterator(*this, first.m_index);
+		}
+
+		Iterator Find(const ValueType& other)
+		{
+			auto itr = Begin();
+			while (itr != End())
+			{
+				const auto& value = *itr;
+
+				if (value == other)
+				{
+					return itr;
+				}
+				else
+				{
+					itr++;
+				}
+			}
+
+			return End();
+		}
+
+		void Sort(ConstIterator first, ConstIterator last, const std::function<bool(const ValueType&, const ValueType)>& func)
+		{
+			if (first == last || Empty())
+			{
+				return;
+			}
+
+			const size_t front = first.m_index < last.m_index ? first.m_index : last.m_index;
+			const size_t back = first.m_index < last.m_index ? last.m_index - 1 : first.m_index;
+			if (front == back)
+			{
+				return;
+			}
+
+			struct Pivot
+			{
+				size_t pivot;
+				size_t lower;
+				size_t upper;
+			};
+
+			Pivot start;
+			start.lower = front;
+			start.upper = back;
+			start.pivot = (start.lower + start.upper) / 2;
+
+			std::queue<Pivot> pivotQueue;
+			pivotQueue.push(start);
+
+			while (!pivotQueue.empty())
+			{
+				Pivot pivot = pivotQueue.front();
+				pivotQueue.pop();
+
+				const size_t lower = pivot.lower;
+				const size_t upper = pivot.upper;
+
+				while (pivot.lower <= pivot.upper)
+				{
+					bool lowerBigger = !func(m_data[pivot.lower], m_data[pivot.pivot]);
+					bool upperSmaller = !func(m_data[pivot.pivot], m_data[pivot.upper]);
+
+					if (lowerBigger && upperSmaller)
+					{
+						ValueType value = m_data[pivot.lower];
+						m_data[pivot.lower] = m_data[pivot.upper];
+						m_data[pivot.upper] = value;
+					}
+
+					if (pivot.lower == pivot.upper)
+					{
+						pivot.lower = (pivot.lower < upper) ? pivot.lower + 1 : pivot.lower;
+					}
+					else
+					{
+						pivot.lower = (!lowerBigger || upperSmaller) && (pivot.lower < upper) ? pivot.lower + 1 : pivot.lower;
+						pivot.upper = (!upperSmaller || lowerBigger) && (pivot.upper > lower) ? pivot.upper - 1 : pivot.upper;
+					}
+				}
+
+				if (lower < pivot.upper)
+				{
+					Pivot left;
+					left.lower = lower;
+					left.upper = pivot.upper;
+					left.pivot = (left.lower + left.upper) / 2;
+
+					pivotQueue.push(left);
+				}
+
+				if (upper > pivot.lower)
+				{
+					Pivot right;
+					right.lower = pivot.lower;
+					right.upper = upper;
+					right.pivot = (right.lower + right.upper) / 2;
+
+					pivotQueue.push(right);
+				}
+			}
+		}
+
+		ConstIterator Find(const ValueType& other) const
+		{
+			auto itr = Begin();
+			while (itr != End())
+			{
+				const auto& value = *itr;
+
+				if (value == other)
+				{
+					return itr;
+				}
+				else
+				{
+					itr++;
+				}
+			}
+
+			return End();
+		}
+
+		size_t Distance(ConstIterator first, ConstIterator last) const
+		{
+			return last.m_index - first.m_index;
 		}
 
 	public :

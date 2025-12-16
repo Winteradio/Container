@@ -142,8 +142,8 @@ namespace wtr
 
 	public:
 		List()
-			: m_count(0)
-			, m_end()
+			: m_end()
+			, m_count(0)
 		{
 			m_end.prev = &m_end;
 			m_end.next = &m_end;
@@ -231,16 +231,12 @@ namespace wtr
 		{
 			Iterator begin = Begin();
 
-			T beginValue = *begin;
-
 			Erase(begin);
 		}
 
 		void PopBack()
 		{
 			Iterator back = --End();
-
-			T backValue = *back;
 
 			Erase(back);
 		}
