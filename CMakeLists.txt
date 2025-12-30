@@ -34,6 +34,8 @@ set(HEADER_LIST
     ${HEADER_DIR}/Variant.h
 )
 
+source_group(TREE "${HEADER_DIR}" PREFIX "include" FILES ${HEADER_LIST})
+
 create_library(
     LIBRARY_TYPE ${LIBRARY_TYPE}
     TARGET_NAME ${PROJECT_NAME}
