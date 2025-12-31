@@ -234,11 +234,7 @@ namespace wtr
 				{
 					Clear();
 
-					if (nullptr != m_data)
-					{
-						m_allocator.Deallocate(m_data);
-					}
-
+					m_allocator = std::move(other.m_allocator);
 					m_data = std::move(other.m_data);
 					m_size = std::move(other.m_size);
 					m_capacity = std::move(other.m_capacity);
