@@ -25,6 +25,7 @@ set(INCLUDE_DIR_LIST
 
 set(HEADER_LIST
 	${HEADER_DIR}/Arena.h
+    ${HEADER_DIR}/LinearArena.h
 	${HEADER_DIR}/DynamicArray.h
     ${HEADER_DIR}/StaticArray.h
 	${HEADER_DIR}/List.h

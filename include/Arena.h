@@ -36,7 +36,7 @@ namespace wtr
 			Arena(Arena&& other) noexcept
 				: Arena()
 			{
-				if (other.m_end.next != other.m_end.prev)
+				if (other.m_end.next != &other.m_end)
 				{
 					m_end.next = other.m_end.next;
 					m_end.prev = other.m_end.prev;
@@ -56,7 +56,7 @@ namespace wtr
 			Arena& operator=(const Arena& other) = delete;
 			Arena& operator=(Arena&& other) noexcept
 			{
-				if (this != &other && other.m_end.next != other.m_end.prev)
+				if (this != &other && other.m_end.next != &other.m_end)
 				{
 					Reset();
 
