@@ -72,7 +72,7 @@ namespace wtr
 
 		~LinearArena()
 		{
-			Reset();
+			Release();
 		}
 
 		LinearArena& operator=(const LinearArena& other) = delete;
@@ -80,7 +80,7 @@ namespace wtr
 		{
 			if (this != &other && other.m_end.next != &other.m_end)
 			{
-				Reset();
+				Release();
 
 				m_end.next = other.m_end.next;
 				m_end.prev = other.m_end.prev;
@@ -150,8 +150,19 @@ namespace wtr
 			return memoryStart;
 		}
 
-	private:
 		void Reset()
+		{
+			Page* now = m_end.next;
+			while (nullptr != now && &m_end != now)
+			{
+				Page* next = now->next;
+				now->offset = 0;
+				now = next;
+			}
+		}
+
+	private :
+		void Release()
 		{
 			Page* now = m_end.next;
 			while (nullptr != now && &m_end != now)
