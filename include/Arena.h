@@ -50,7 +50,7 @@ namespace wtr
 
 			~Arena()
 			{
-				Reset();
+				Release();
 			}
 
 			Arena& operator=(const Arena& other) = delete;
@@ -58,7 +58,7 @@ namespace wtr
 			{
 				if (this != &other && other.m_end.next != &other.m_end)
 				{
-					Reset();
+					Release();
 
 					m_end.next = other.m_end.next;
 					m_end.prev = other.m_end.prev;
@@ -129,7 +129,7 @@ namespace wtr
 			}
 
 		private :
-			void Reset()
+			void Release()
 			{
 				Page* now = m_end.next;
 				while (nullptr != now && &m_end != now)
