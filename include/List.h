@@ -26,6 +26,8 @@ namespace wtr
 				: prev(other.prev)
 				, next(other.next)
 			{}
+
+			virtual ~NodeBase() {}
 		};
 
 		struct Node : NodeBase
@@ -157,7 +159,7 @@ namespace wtr
 
 		List(const List<T>& other) = delete;
 
-		explicit List(List<T>&& other) noexcept
+		List(List<T>&& other) noexcept
 			: List()
 		{
 			this->Splice(Begin(), other);
@@ -462,7 +464,7 @@ namespace wtr
 		Iterator begin() { return Iterator(m_end.next); }
 		Iterator end() { return Iterator(&m_end); }
 		ConstIterator begin() const { return ConstIterator(m_end.next); }
-		ConstIterator end() const {	return Iterator(&m_end); }
+		ConstIterator end() const {	return ConstIterator(&m_end); }
 
 		ReverseIterator rbegin() { return ReverseIterator(m_end.prev); }
 		ReverseIterator rend() { return ReverseIterator(&m_end); }
