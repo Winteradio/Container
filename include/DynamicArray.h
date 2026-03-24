@@ -163,6 +163,12 @@ namespace wtr
 				, m_allocator()
 			{}
 
+			DynamicArray(const size_t count)
+				: DynamicArray()
+			{
+				Resize(count);
+			}
+
 			DynamicArray(const std::initializer_list<T>& initList)
 				: DynamicArray()
 			{
@@ -192,6 +198,8 @@ namespace wtr
 				: m_data(std::move(other.m_data))
 				, m_size(std::move(other.m_size))
 				, m_capacity(std::move(other.m_capacity))
+				, m_allocator(std::move(other.m_allocator))
+
 			{
 				other.m_data = nullptr;
 				other.m_size = 0;
