@@ -56,7 +56,7 @@ namespace wtr
 			Arena& operator=(const Arena& other) = delete;
 			Arena& operator=(Arena&& other) noexcept
 			{
-				if (this != &other && other.m_end.next != &other.m_end)
+				if (this != &other && &other.m_end != other.m_end.prev)
 				{
 					Release();
 
