@@ -8,6 +8,8 @@
 	#define _VARIANT_ASSERT(x)
 #endif
 
+#include "TypeTraits.h"
+
 namespace std
 {
 	template<typename T>
@@ -18,36 +20,6 @@ namespace wtr
 {
 	namespace util
 	{
-		template<typename...> 
-		using Void_t = void;
-
-		template<bool Condition, typename T>
-		struct EnableIf;
-
-		template<typename T>
-		struct EnableIf<true, T>
-		{
-			using Type = T;
-		};
-
-		template<typename T, typename U>
-		struct IsSame
-		{
-			static const bool Value = false;
-		};
-	
-		template<typename T>
-		struct IsSame<T, T>
-		{
-			static const bool Value = true;
-		};
-
-		template<typename T>
-		T&& Declval() noexcept
-		{
-			return static_cast<T&&>(*(T*)nullptr);
-		}
-	
 		template<typename... Args>
 		struct SizeCalculator 
 		{
@@ -126,9 +98,6 @@ namespace wtr
 		{
 			return IndexCalculator<T, Args...>::value;
 		}
-
-		template<typename... Ts>
-		struct TypeList {};
 
 		template<typename Storage, typename TypeList>
 		struct TypeMatcher
@@ -236,7 +205,7 @@ namespace wtr
 			static constexpr size_t g_MaxSize = util::SizeOf<Args...>();
 			static constexpr size_t g_MaxAlign = util::AlignOf<Args...>();
 
-			using Types = util::TypeList<Args...>;
+			using Types = TypeList<Args...>;
 			using Storage = util::AlignedStorage<g_MaxSize, g_MaxAlign>;
 
 		public :
@@ -262,14 +231,14 @@ namespace wtr
 				Move(std::move(_other));
 			}
 
-			template<typename T, typename = typename util::EnableIf<!util::IsSame<T, Variant>::Value>>
+			template<typename T, typename = typename EnableIf<!IsSame<T, Variant>::Value>>
 			Variant(const T& _value)
 				: m_nCurrentIndex(-1)
 			{
 				Set(_value);
 			}
 
-			template<typename T, typename = typename util::EnableIf<!util::IsSame<T, Variant>::Value>>
+			template<typename T, typename = typename EnableIf<!IsSame<T, Variant>::Value>>
 			Variant(T&& _value)
 				: m_nCurrentIndex(-1)
 			{
@@ -296,7 +265,7 @@ namespace wtr
 				return *this;
 			}
 
-			template<typename T, typename = typename util::EnableIf<!util::IsSame<T, Variant>::Value>>
+			template<typename T, typename = typename EnableIf<!IsSame<T, Variant>::Value>>
 			Variant& operator=(const T& _value)
 			{
 				Set(_value);
@@ -304,7 +273,7 @@ namespace wtr
 				return *this;
 			}
 
-			template<typename T, typename = typename util::EnableIf<!util::IsSame<T, Variant>::Value>>
+			template<typename T, typename = typename EnableIf<!IsSame<T, Variant>::Value>>
 			Variant& operator=(T&& _value)
 			{
 				Set(std::move(_value));

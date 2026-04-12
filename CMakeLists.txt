@@ -32,6 +32,7 @@ set(HEADER_LIST
     ${HEADER_DIR}/HashTable.h
 	${HEADER_DIR}/HashMap.h
 	${HEADER_DIR}/HashSet.h
+    ${HEADER_DIR}/TypeTraits.h
     ${HEADER_DIR}/Variant.h
 )
 
