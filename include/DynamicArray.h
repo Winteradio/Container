@@ -106,6 +106,35 @@ namespace wtr
 				return itr;
 			}
 
+			BaseIterator operator+(const int offset) const
+			{
+				if constexpr (Reverse)
+				{
+					const int newIndex = static_cast<int>(m_index) - offset;
+					assert(newIndex >= 0 && newIndex <= static_cast<int>(m_array->Size()) && "Invalid the dynamic array's reverse iterator's addition");
+
+					BaseIterator itr = *this;
+					itr.m_index = static_cast<size_t>(newIndex);
+					
+					return itr;
+				}
+				else
+				{
+					const int newIndex = static_cast<int>(m_index) + offset;
+					assert(newIndex >= 0 && newIndex <= static_cast<int>(m_array->Size()) && "Invalid the dynamic array's reverse iterator's addition");
+
+					BaseIterator itr = *this;
+					itr.m_index = static_cast<size_t>(newIndex);
+
+					return itr;
+				}
+			}
+
+			BaseIterator operator-(const int offset) const
+			{
+				return *this + (-offset);
+			}
+
 			bool operator==(const BaseIterator& other) const
 			{
 				return m_array == other.m_array && m_index == other.m_index;
@@ -236,7 +265,7 @@ namespace wtr
 				return *this;
 			}
 
-			DynamicArray& operator=(DynamicArray&& other)
+			DynamicArray& operator=(DynamicArray&& other) noexcept
 			{
 				if (this != &other)
 				{
@@ -530,7 +559,7 @@ namespace wtr
 
 			for (size_t index = 0; index < offset; index++)
 			{
-				m_data[index + pos.m_index] = initList[index];
+				m_data[index + pos.m_index] = *(initList.begin() + index);
 			}
 
 			return Iterator(*this, pos.m_index);
