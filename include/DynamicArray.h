@@ -492,6 +492,17 @@ namespace wtr
 			m_size = 0;
 		}
 
+		void Assign(const size_t count, const T& value)
+		{
+			Clear();
+			Resize(count);
+		
+			for (size_t index = 0; index < count; index++)
+			{
+				m_data[index] = value;
+			}
+		}
+
 		void Assign(const std::initializer_list<T>& initList)
 		{
 			Clear();

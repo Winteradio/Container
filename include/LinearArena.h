@@ -106,12 +106,8 @@ namespace wtr
 
 		void* Allocate(const size_t objectSize, const size_t alignSize)
 		{
-			Page* page = m_end.prev;
-
-			size_t paddingSize = (alignSize - (page->offset % alignSize)) % alignSize;
-			size_t totalSize = objectSize + paddingSize;
-
-			if (page == &m_end || page->isFull() || page->offset + totalSize >= page->size)
+			Page* fitPage = GetPage(objectSize, alignSize);
+			if (fitPage == &m_end)
 			{
 				const size_t pageSize = MAX(objectSize, Page::MIN_SIZE);
 				const size_t pageAlignSize = alignof(Page);
@@ -132,20 +128,20 @@ namespace wtr
 				newPage->offset = 0;
 				newPage->size = pageSize + pagePaddingSize;
 
-				m_end.prev->next = newPage;
-				newPage->prev = m_end.prev;
-				newPage->next = &m_end;
-				m_end.prev = newPage;
+				m_end.next->prev = newPage;
+				newPage->prev = &m_end;
+				newPage->next = m_end.next;
+				m_end.next = newPage;
 
-				page = newPage;
+				fitPage = newPage;
 			}
 
-			paddingSize = (alignSize - (page->offset % alignSize)) % alignSize;
-			totalSize = objectSize + paddingSize;
+			size_t paddingSize = (alignSize - (fitPage->offset % alignSize)) % alignSize;
+			size_t totalSize = objectSize + paddingSize;
 
-			void* memoryStart = static_cast<void*>(static_cast<uint8_t*>(page->data) + page->offset + paddingSize);
+			void* memoryStart = static_cast<void*>(static_cast<uint8_t*>(fitPage->data) + fitPage->offset + paddingSize);
 
-			page->offset += totalSize;
+			fitPage->offset += totalSize;
 
 			return memoryStart;
 		}
@@ -162,6 +158,27 @@ namespace wtr
 		}
 
 	private :
+		Page* GetPage(const size_t objectSize, const size_t alignSize)
+		{
+			Page* fitPage = &m_end;
+			Page* current = m_end.next;
+
+			while (current != &m_end)
+			{
+				size_t paddingSize = (alignSize - (current->offset % alignSize)) % alignSize;
+				size_t totalSize = objectSize + paddingSize;
+				if (!current->isFull() && current->offset + totalSize < current->size)
+				{
+					fitPage = current;
+					break;
+				}
+
+				current = current->next;
+			}
+
+			return fitPage;
+		}
+
 		void Release()
 		{
 			Page* now = m_end.next;
