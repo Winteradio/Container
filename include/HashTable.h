@@ -571,6 +571,11 @@ namespace wtr
 			}
 		}
 
+		bool Contains(const Key& key) const
+		{
+			return FindIndex(key) != MaxSize();
+		}
+
 	public :
 		// Standard Range Iterator
 		Iterator begin() { return Iterator(*this, 0, true); }
