@@ -143,9 +143,10 @@ namespace wtr
 				index++;
 			}
 
+			size_t lastIndex = index;
 			for (; index < Count; index++)
 			{
-				m_data[index] = T{};
+				m_data[index] = m_data[lastIndex - 1];
 			}
 
 		}

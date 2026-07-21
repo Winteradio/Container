@@ -458,6 +458,40 @@ namespace wtr
 			m_size = newSize;
 		}
 
+		void Resize(const size_t newSize, const T& data)
+		{
+			if (newSize > m_size)
+			{
+				if (newSize > m_capacity)
+				{
+					Reserve(newSize);
+				}
+
+				for (size_t index = m_size; index < newSize; index++)
+				{
+					T* instance = m_data + index;
+					if (nullptr != instance)
+					{
+						new (m_data + index) T{data};
+					}
+				}
+			}
+			else
+			{
+				for (size_t index = newSize; index < m_size; index++)
+				{
+					T* instance = m_data + index;
+					if (nullptr != instance)
+					{
+						instance->~T();
+					}
+				}
+			}
+
+
+			m_size = newSize;
+		}
+
 		void Reserve(const size_t newCapacity)
 		{
 			if (newCapacity > m_capacity)
