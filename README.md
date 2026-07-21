@@ -19,7 +19,9 @@ A high-performance, custom C++ container library designed for game engine develo
 | **`HashMap`** | Key-Value store (like `std::unordered_map`). | **Robin Hood Hashing** (Open Addressing) for cache locality. |
 | **`HashSet`** | Unique key set (like `std::unordered_set`). | **Robin Hood Hashing** (Open Addressing). |
 | **`Variant`** | Type-safe union (like `std::variant`). | Supports types with non-trivial destructors and deep copying. |
-| **`Arena`** | Memory Allocator. | Wrapper for allocation strategies. |
+| **`Arena`** | Tracked heap allocator. | Each `Allocate` is a separate `::operator new`, tracked in a `Page` linked list so it can be individually `Deallocate`d or bulk-released on destruction. |
+| **`LinearArena`** | Bump (linear) allocator. | Grows fixed-size pages and hands out offsets from them; no per-object free, only a bulk `Reset()`. Good for scratch/frame-lifetime allocations. |
+| **`TLSFArena`** | Two-Level Segregated Fit suballocator. | O(1) allocate/free/split/merge over a fixed-size byte range via a FL/SL size-class bitmap + free-list, independent of the underlying memory (see the diagrams in `TLSFArena.h`). |
 
 ## 🚀 Getting Started
 
@@ -166,12 +168,36 @@ A wrapper around a raw array providing bounds checking (via assert) and STL-comp
 
 void ExampleStaticArray() {
     // Fixed size of 5
-    Memory::StaticArray<int, 5> arr = {1, 2, 3}; // Remaining elements zero-initialized
+    wtr::StaticArray<int, 5> arr = {1, 2, 3}; // Fewer elements than Count -> remaining
+                                               // slots repeat the LAST given value (here: 3, 3)
 
     arr[0] = 10;
     
     // Bounds check asserts in debug mode
     // arr[10] = 5; // Crashes
+}
+```
+
+### 6\. TLSFArena
+
+A Two-Level Segregated Fit suballocator over an abstract `[0, totalSize)` byte range. It never touches real memory itself - callers map the returned `offset` onto whatever storage they own (a raw buffer, a `VkDeviceMemory`, etc.), which is what lets the same arena be reused for CPU or GPU-backed memory.
+
+```cpp
+#include "TLSFArena.h"
+
+void ExampleTLSFArena() {
+    wtr::TLSFArena arena;
+    arena.Init(1024 * 1024); // 1MB
+
+    auto a = arena.Allocate(4096);
+    auto b = arena.Allocate(8192);
+
+    arena.Free(a);
+
+    // a's space is reusable immediately; adjacent free Blocks merge back
+    // together automatically on Free() - see TLSFArena.h for the full
+    // FL/SL bitmap + free-list design (diagrams included in the header).
+    auto c = arena.Allocate(4096);
 }
 ```
 
@@ -191,13 +217,23 @@ The `HashMap` and `HashSet` utilize **Open Addressing** with **Robin Hood Hashin
 
 Implemented using `AlignedStorage` and variadic templates. It uses a recursive `TypeMatcher` struct to handle Copy, Move, and Destroy operations for the active type in the storage union.
 
-### Custom Allocation (`Arena`)
+### Custom Allocation (`Arena` / `LinearArena`)
 
-The containers allow injecting an `Allocator` type.
+The containers allow injecting an `Allocator` type (default: `wtr::Arena`).
 
-  * Default: `wtr::Arena`
-  * Functions: `Allocate(size)`, `Deallocate(ptr)`
-  * This structure allows for easy replacement with Pool Allocators or Stack Allocators for engine integration.
+  * **`Arena`** - a concrete tracked allocator, not a strategy wrapper. Every `Allocate(size)` is its own `::operator new`, recorded in a doubly-linked list of `Page` records; `Deallocate(ptr)` walks that list to find and free the matching page, and any pages still outstanding are released together when the `Arena` itself is destroyed.
+  * **`LinearArena`** - a separate, distinct allocator (not swapped in via the same `Allocator` slot as `Arena` - it has no per-pointer `Deallocate`). It carves memory out of large pages sequentially and only supports releasing everything at once via `Reset()`, making it a better fit for short-lived, frame-scoped allocations than for containers that need individual items freed.
+  * Plugging in your own allocator (e.g. a pool allocator) just means matching whichever interface the container's `Allocator` template parameter expects.
+
+### TLSF Suballocation (`TLSFArena.h`)
+
+`TLSFArena` manages a `[0, totalSize)` size range using the **Two-Level Segregated Fit** algorithm - the same class of algorithm used by production GPU suballocators (e.g. AMD's VMA).
+
+  * **First/Second-Level index (FL/SL)**: `size` is classified by its most-significant-bit position (FL) and a linear subdivision within that power-of-two range (SL), giving an O(1) size-class lookup instead of a linear scan.
+  * **Bitmap search**: one bit per size class (`m_bitMap`) lets `Allocate()` find the nearest non-empty class via bit masking + lowest-set-bit, without touching `m_blocks` until a candidate is already known.
+  * **Two independent link pairs per Block**: `prev/next` (physical neighbors, always valid - used to merge on `Free()`) and `prevFree/nextFree` (size-class neighbors, only valid while free - used by `Allocate()`'s free-list). They track two unrelated groupings of the same Block and cannot be collapsed into one pair.
+  * **Storage-agnostic**: the arena only ever deals in integer offsets - it has no notion of CPU vs GPU memory, which is why it is reusable as the core of a GPU suballocator (e.g. wrapped by a `VkDeviceMemory`-owning block) without any GPU-specific code inside `TLSFArena` itself.
+  * Full ASCII-art diagrams of the physical chain and the size-class free-list are kept as comments directly in `TLSFArena.h`, next to the code they describe.
 
 -----
 

@@ -3,6 +3,7 @@
 #include "StaticArray.h"
 #include "HashSet.h"
 #include "HashMap.h"
+#include "TLSFArena.h"
 
 #include <Log/include/Log.h>
 #include <Log/include/LogPlatform.h>
@@ -10,6 +11,7 @@
 #include <vector>
 #include <string>
 #include <ostream>
+#include <algorithm>
 
 void HashMapTest()
 {
@@ -739,6 +741,245 @@ void StaticArrayTest()
 	}
 }
 
+void TLSFArenaTest()
+{
+	LOGINFO() << "========== TLSFArena Test Start ==========";
+
+	// 1. Init & Single Allocate
+	{
+		LOGINFO() << "[Test 1] Init & Single Allocate";
+
+		wtr::TLSFArena arena;
+		arena.Init(1024 * 1024); // 1MB
+
+		auto alloc = arena.Allocate(1000);
+
+		LOGINFO() << "Offset : " << alloc.offset << ", Size : " << alloc.size << ", Index : " << alloc.index;
+
+		if (alloc.offset == 0 && alloc.size >= 1000)
+		{
+			LOGINFO() << "Basic Allocate Passed";
+		}
+		else
+		{
+			LOGINFO() << "[Error] Basic Allocate Failed";
+		}
+	}
+
+	// 2. Sequential Allocate - offsets should be contiguous, no overlap
+	{
+		LOGINFO() << "[Test 2] Sequential Allocate (No Overlap)";
+
+		wtr::TLSFArena arena;
+		arena.Init(1024 * 1024);
+
+		auto a = arena.Allocate(1024);
+		auto b = arena.Allocate(2048);
+		auto c = arena.Allocate(512);
+
+		LOGINFO() << "A : offset=" << a.offset << " size=" << a.size;
+		LOGINFO() << "B : offset=" << b.offset << " size=" << b.size;
+		LOGINFO() << "C : offset=" << c.offset << " size=" << c.size;
+
+		bool noOverlap = (b.offset == a.offset + a.size) && (c.offset == b.offset + b.size);
+
+		if (noOverlap)
+		{
+			LOGINFO() << "Sequential Allocate Passed (contiguous, no overlap)";
+		}
+		else
+		{
+			LOGINFO() << "[Error] Sequential Allocate Failed";
+		}
+	}
+
+	// 3. Free & Reallocate - freed space should be reusable
+	{
+		LOGINFO() << "[Test 3] Free & Reallocate";
+
+		wtr::TLSFArena arena;
+		arena.Init(1024 * 1024);
+
+		auto a = arena.Allocate(1024);
+		arena.Free(a);
+
+		auto b = arena.Allocate(1024);
+
+		LOGINFO() << "Freed A : offset=" << a.offset;
+		LOGINFO() << "Reallocated B : offset=" << b.offset;
+
+		if (b.offset == a.offset)
+		{
+			LOGINFO() << "Free & Reallocate Passed (space reused)";
+		}
+		else
+		{
+			LOGINFO() << "[Error] Free & Reallocate Failed";
+		}
+	}
+
+	// 4. Merge on Free - freeing neighbors should merge back into one block
+	{
+		LOGINFO() << "[Test 4] Merge on Free (Left/Right Neighbor)";
+
+		wtr::TLSFArena arena;
+		arena.Init(1024 * 1024);
+
+		auto a = arena.Allocate(1024);
+		auto b = arena.Allocate(1024);
+		auto c = arena.Allocate(1024);
+
+		// Free B first : both neighbors still allocated -> no merge
+		arena.Free(b);
+
+		// Free A : right neighbor(B) is free -> should merge into A
+		arena.Free(a);
+
+		// Free C : left neighbor(A+B merged) is free -> should merge into one block
+		arena.Free(c);
+
+		size_t mergedTarget = a.size + b.size + c.size;
+		auto merged = arena.Allocate(mergedTarget);
+
+		LOGINFO() << "Merged Allocate : offset=" << merged.offset << " size=" << merged.size;
+
+		if (merged.offset == a.offset && merged.size >= mergedTarget)
+		{
+			LOGINFO() << "Merge on Free Passed";
+		}
+		else
+		{
+			LOGINFO() << "[Error] Merge on Free Failed";
+		}
+	}
+
+	// 5. Full Cycle - allocate several blocks, free all, whole arena should be reclaimable
+	{
+		LOGINFO() << "[Test 5] Full Cycle (Alloc All -> Free All -> Reclaim Whole Arena)";
+
+		const size_t totalSize = 1024 * 1024;
+		wtr::TLSFArena arena;
+		arena.Init(totalSize);
+
+		auto x = arena.Allocate(10000);
+		auto y = arena.Allocate(20000);
+		auto z = arena.Allocate(5000);
+
+		// Free in a mixed order (not purely sequential) to exercise all merge directions
+		arena.Free(y);
+		arena.Free(x);
+		arena.Free(z);
+
+		auto full = arena.Allocate(totalSize);
+
+		LOGINFO() << "Full Reclaim : offset=" << full.offset << " size=" << full.size;
+
+		if (full.offset == 0 && full.size == totalSize)
+		{
+			LOGINFO() << "Full Cycle Passed (no leaks, no fragmentation)";
+		}
+		else
+		{
+			LOGINFO() << "[Error] Full Cycle Failed - possible leak or fragmentation";
+		}
+	}
+
+	// 6. Exact-Size Match Allocate - reusing an isolated free block that exactly fits
+	{
+		LOGINFO() << "[Test 6] Exact-Size Match Allocate & Double-Allocation Guard";
+
+		wtr::TLSFArena arena;
+		arena.Init(1024 * 1024);
+
+		auto a = arena.Allocate(2048);
+		auto b = arena.Allocate(2048);
+		auto c = arena.Allocate(2048);
+
+		// B is sandwiched between two still-allocated blocks, so freeing it
+		// cannot merge with either neighbor - it stays an isolated, exact-size free block.
+		arena.Free(b);
+
+		auto d = arena.Allocate(2048);
+
+		LOGINFO() << "B (freed) : offset=" << b.offset << " size=" << b.size;
+		LOGINFO() << "D (reallocated) : offset=" << d.offset << " size=" << d.size;
+
+		if (d.offset == b.offset && d.size == b.size)
+		{
+			LOGINFO() << "Exact-Size Match Passed";
+		}
+		else
+		{
+			LOGINFO() << "[Error] Exact-Size Match Failed";
+		}
+
+		// D is now allocated again (not free). Requesting the same size again must NOT
+		// hand back the same block - this guards against the exact-match double-allocation bug.
+		auto e = arena.Allocate(2048);
+		LOGINFO() << "E (should differ from D) : offset=" << e.offset << " size=" << e.size;
+
+		if (e.offset != d.offset)
+		{
+			LOGINFO() << "Double-Allocation Guard Passed";
+		}
+		else
+		{
+			LOGINFO() << "[Error] Double-Allocation Detected!";
+		}
+	}
+
+	// 7. Multiple Simultaneous Free Blocks Sharing One Size Bucket
+	{
+		LOGINFO() << "[Test 7] Multiple Free Blocks Sharing One Size Bucket";
+
+		wtr::TLSFArena arena;
+		arena.Init(1024 * 1024);
+
+		// Wall off each candidate with an allocated neighbor so freeing it
+		// can never merge away - forces a,b,c to stay free at the exact same time.
+		auto a = arena.Allocate(1024);      // offset 0
+		auto wall1 = arena.Allocate(1024);  // offset 1024, stays allocated
+		auto b = arena.Allocate(1024);      // offset 2048
+		auto wall2 = arena.Allocate(1024);  // offset 3072, stays allocated
+		auto c = arena.Allocate(1024);      // offset 4096
+		auto wall3 = arena.Allocate(1024);  // offset 5120, stays allocated
+
+		arena.Free(a);
+		arena.Free(b);
+		arena.Free(c);
+
+		LOGINFO() << "Freed A : offset=" << a.offset;
+		LOGINFO() << "Freed B : offset=" << b.offset;
+		LOGINFO() << "Freed C : offset=" << c.offset;
+
+		// All three now sit free, at the same time, in the same size bucket.
+		auto d = arena.Allocate(1024);
+		auto e = arena.Allocate(1024);
+		auto f = arena.Allocate(1024);
+
+		LOGINFO() << "D : offset=" << d.offset;
+		LOGINFO() << "E : offset=" << e.offset;
+		LOGINFO() << "F : offset=" << f.offset;
+
+		std::vector<size_t> expected = { a.offset, b.offset, c.offset };
+		std::vector<size_t> actual = { d.offset, e.offset, f.offset };
+
+		std::sort(expected.begin(), expected.end());
+		std::sort(actual.begin(), actual.end());
+
+		if (expected == actual)
+		{
+			LOGINFO() << "Multiple Free Blocks Passed (all three reused correctly, no loss/duplication)";
+		}
+		else
+		{
+			LOGINFO() << "[Error] Multiple Free Blocks Failed - mismatch between freed and reallocated offsets";
+		}
+	}
+
+	LOGINFO() << "========== TLSFArena Test End ==========";
+}
+
 int MAIN()
 {
 	Log::Init(1024, Log::Enum::eMode_Print | Log::Enum::eMode_Save, Log::Enum::eLevel_Type);
@@ -748,6 +989,7 @@ int MAIN()
 	VariantTest();
 	DynamicArrayTest();
 	StaticArrayTest();
+	TLSFArenaTest();
 
 	system("pause");
 
