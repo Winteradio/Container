@@ -130,11 +130,11 @@ namespace wtr
 
 					if (!_lhs.valid)
 					{
-						new (&_lhs.data) T(rhsValue);
+						new (&_lhs.data) T(std::move(rhsValue));
 					}
 					else
 					{
-						lhsValue = rhsValue;
+						lhsValue = std::move(rhsValue);
 						_lhs.valid = _rhs.valid;
 					}
 				}
@@ -396,6 +396,7 @@ namespace wtr
 			{
 				if (_other.m_nCurrentIndex != -1)
 				{
+					Destroy();
 					this->m_nCurrentIndex = _other.m_nCurrentIndex;
 					this->m_nCurrentHash = _other.m_nCurrentHash;
 					util::TypeMatcher<Storage, Types>::Copy(m_tStorage, _other.m_tStorage, m_nCurrentIndex);
@@ -406,6 +407,7 @@ namespace wtr
 			{
 				if (_other.m_nCurrentIndex != -1)
 				{
+					Destroy();
 					this->m_nCurrentIndex = _other.m_nCurrentIndex;
 					this->m_nCurrentHash = _other.m_nCurrentHash;
 					util::TypeMatcher<Storage, Types>::Move(m_tStorage, std::move(_other.m_tStorage), m_nCurrentIndex);
