@@ -260,10 +260,11 @@ namespace wtr
 			size_t m_index;
 		};
 
-		using Iterator = std::conditional_t<std::is_same_v<Key, Data>, BaseIterator<true, false>, BaseIterator<false, false>>;
+		using IsSet = std::is_same_v<Key, Data>;
+		using Iterator = std::conditional_t<IsSet, BaseIterator<true, false>, BaseIterator<false, false>>;
 		using ConstIterator = BaseIterator<true, false>;
 
-		using ReverseIterator = std::conditional_t<std::is_same_v<Key, Data>, BaseIterator<true, true>, BaseIterator<true, false>>;
+		using ReverseIterator = std::conditional_t<IsSet, BaseIterator<true, true>, BaseIterator<false, true>>;
 		using ConstReverseIterator = BaseIterator<true, true>;
 
 	public :

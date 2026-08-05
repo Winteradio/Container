@@ -1,5 +1,5 @@
 #ifndef __WTR_TLSF_ARENA_H__
-#define __WTR_TLSF_ANREA_H__
+#define __WTR_TLSF_ARENA_H__
 
 #include "StaticArray.h"
 #include "DynamicArray.h"
@@ -85,6 +85,7 @@ namespace wtr
 			, m_blocks()
 			, m_unusedIndices()
 			, m_totalSize(0)
+			, m_remainedSize(0)
 		{}
 
 		virtual ~TLSFArena() = default;
@@ -93,6 +94,7 @@ namespace wtr
 		void Init(const size_t totalSize)
 		{
 			m_totalSize = GetAlignedSize(totalSize);
+			m_remainedSize = m_totalSize;
 
 			Block block;
 			block.free = true;
@@ -154,6 +156,8 @@ namespace wtr
 				break;
 			}
 
+			m_remainedSize -= allocation.size;
+
 			return allocation;
 		}
 
@@ -163,6 +167,8 @@ namespace wtr
 			{
 				return;
 			}
+
+			m_remainedSize += allocation.size;
 
 			Block& block = m_blocks[allocation.index];
 			block.free = true;
@@ -177,6 +183,11 @@ namespace wtr
 			{
 				Insert(allocation.index);
 			}
+		}
+
+		bool IsEmpty() const
+		{
+			return m_totalSize == m_remainedSize;
 		}
 
 	private :
@@ -457,12 +468,13 @@ namespace wtr
 			return (1ull << SL_COUNT);
 		}
 
-	private :
+	public :
+		static constexpr uint64_t NULL_INDEX = ~0ull;
 		static constexpr size_t FL_COUNT = 64;
 		static constexpr size_t SL_COUNT = 4;
 		static constexpr size_t	ALIGN_SIZE = 256;
-		static constexpr uint64_t NULL_INDEX = ~0ull;
 
+	private :
 		StaticArray<uint64_t, FL_COUNT> m_bitMap;
 		StaticArray<uint64_t, FL_COUNT* (1ull << SL_COUNT)> m_freeIndices;
 
@@ -470,7 +482,8 @@ namespace wtr
 		DynamicArray<size_t>	m_unusedIndices;
 
 		size_t m_totalSize;
+		size_t m_remainedSize;
 	};
-}
+};
 
 #endif // __WTR_TLSF_ARENA_H__

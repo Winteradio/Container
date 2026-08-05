@@ -333,7 +333,7 @@ namespace wtr
 			firstPrev->next = lastNext;
 			lastNext->prev = firstPrev;
 
-			Node* prev = node->prev;
+			NodeBase* prev = node->prev;
 
 			prev->next = firstNode;
 			firstNode->prev = prev;
