@@ -93,7 +93,7 @@ namespace wtr
 	public :
 		void Init(const size_t totalSize)
 		{
-			m_totalSize = GetAlignedSize(totalSize);
+			m_totalSize = GetNeededSize(totalSize);
 			m_remainedSize = m_totalSize;
 
 			Block block;
@@ -110,17 +110,17 @@ namespace wtr
 			m_blocks.PushBack(block);
 		}
 
-		Allocation Allocate(const size_t size)
+		Allocation Allocate(const size_t size, const size_t alignSize = ALIGN_SIZE)
 		{
 			Allocation allocation;
 
-			const size_t alignedSize = GetAlignedSize(size);
+			const size_t neededSize = GetNeededSize(size);
 
-			const size_t beginFLI = GetFLI(alignedSize);
+			const size_t beginFLI = GetFLI(neededSize);
 			const size_t endFLI = GetFLI(m_totalSize);
 			for (size_t fli = beginFLI; fli <= endFLI; fli++)
 			{
-				const size_t requiredSize = (1ull << fli) > alignedSize ? (1ull << fli) : alignedSize;
+				const size_t requiredSize = (1ull << fli) > neededSize ? (1ull << fli) : neededSize;
 				const size_t sli = GetSLI(requiredSize, fli);
 
 				const size_t upperSLIBit = m_bitMap[fli] & (~0ull << sli);
@@ -137,9 +137,9 @@ namespace wtr
 				}
 
 				const size_t blockIndex = m_freeIndices[bucketIndex];
-				if (m_blocks[blockIndex].size > alignedSize)
+				if (m_blocks[blockIndex].size > neededSize)
 				{
-					Split(blockIndex, alignedSize);
+					Split(blockIndex, neededSize);
 				}
 				else
 				{
@@ -202,10 +202,10 @@ namespace wtr
 				return;
 			}
 
-			const size_t alignedSize = GetAlignedSize(size);
+			const size_t neededSize = GetNeededSize(size);
 
 			Block origin = m_blocks[blockIndex];
-			if (alignedSize >= origin.size)
+			if (neededSize >= origin.size)
 			{
 				return;
 			}
@@ -213,8 +213,8 @@ namespace wtr
 			const size_t rightIndex = GetUnusedIndex();
 
 			Block& right = m_blocks[rightIndex];
-			right.offset = origin.offset + alignedSize;
-			right.size = origin.size - alignedSize;
+			right.offset = origin.offset + neededSize;
+			right.size = origin.size - neededSize;
 			right.free = true;
 
 			right.prev = blockIndex;
@@ -223,7 +223,7 @@ namespace wtr
 			Remove(blockIndex);
 
 			Block& block = m_blocks[blockIndex];
-			block.size = alignedSize;
+			block.size = neededSize;
 			block.free = false;
 			block.prevFree = NULL_INDEX;
 			block.nextFree = NULL_INDEX;
@@ -410,7 +410,7 @@ namespace wtr
 			}
 		}
 
-		size_t GetAlignedSize(const size_t size) const
+		size_t GetNeededSize(const size_t size) const
 		{
 			return (size + (ALIGN_SIZE - 1)) & ~(ALIGN_SIZE - 1);
 		}

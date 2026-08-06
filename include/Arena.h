@@ -73,9 +73,8 @@ namespace wtr
 			}
 
 		public :
-			void* Allocate(const size_t memorySize)
+			void* Allocate(const size_t memorySize, const size_t alignSize = alignof(Page))
 			{
-				const size_t alignSize = alignof(Page);
 				const size_t paddingSize = (alignSize - (memorySize % alignSize)) % alignSize;
 				const size_t offsetSize = memorySize + paddingSize;
 				const size_t totalSize = offsetSize + sizeof(Page);

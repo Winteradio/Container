@@ -52,7 +52,7 @@ namespace wtr
 
 				return *this;
 			}
-			
+
 			BaseIterator& operator--()
 			{
 				if constexpr (Reverse)
@@ -141,6 +141,11 @@ namespace wtr
 			{
 				m_data[index] = element;
 				index++;
+			}
+
+			if (index == 0)
+			{
+				return;
 			}
 
 			size_t lastIndex = index;

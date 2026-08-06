@@ -260,7 +260,8 @@ namespace wtr
 			size_t m_index;
 		};
 
-		using IsSet = std::is_same_v<Key, Data>;
+		static constexpr bool IsSet = std::is_same_v<Key, Data>;
+
 		using Iterator = std::conditional_t<IsSet, BaseIterator<true, false>, BaseIterator<false, false>>;
 		using ConstIterator = BaseIterator<true, false>;
 
