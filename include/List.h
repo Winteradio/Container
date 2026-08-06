@@ -43,6 +43,18 @@ namespace wtr
 				: NodeBase(other)
 				, item(other.item)
 			{}
+
+			Node(Node&& other)
+				: NodeBase(std::forward<NodeBase>(other))
+				, item(std::forward<T>(other.item))
+			{}
+
+			template<typename... Args>
+			Node(Args&&... args)
+				: NodeBase()
+				, item(std::forward<Args>(args)...)
+			{
+			}
 		};
 
 	public:
@@ -141,6 +153,8 @@ namespace wtr
 		using ConstReverseIterator = BaseIterator<true, true>;
 
 	public:
+		using ValueType = T;
+
 		List()
 			: m_end()
 			, m_count(0)
@@ -215,30 +229,44 @@ namespace wtr
 	public :
 		void PushFront(const T& item)
 		{
-			Iterator begin = Begin();
+			Iterator pos = Begin();
 
-			Insert(begin, item);
+			Insert(pos, item);
+		}
+
+		void PushFront(T&& item)
+		{
+			Iterator pos = Begin();
+
+			Insert(pos, std::forward<T>(item));
 		}
 
 		void PushBack(const T& item)
 		{
-			Iterator end = End();
+			Iterator pos = End();
 
-			Insert(end, item);
+			Insert(pos, item);
+		}
+
+		void PushBack(T&& item)
+		{
+			Iterator pos = End();
+
+			Insert(pos, std::forward<T>(item));
 		}
 
 		void PopFront()
 		{
-			Iterator begin = Begin();
+			Iterator pos = Begin();
 
-			Erase(begin);
+			Erase(pos);
 		}
 
 		void PopBack()
 		{
-			Iterator back = --End();
+			Iterator pos = --End();
 
-			Erase(back);
+			Erase(pos);
 		}
 
 		void Splice(const Iterator pos, List<T>& other)
@@ -389,7 +417,8 @@ namespace wtr
 		}
 
 	public :
-		Iterator Insert(Iterator pos, const T& item)
+		template<typename... Args>
+		Iterator Insert(Iterator pos, Args&&... args)
 		{
 			NodeBase* node = pos.m_node;
 			if (nullptr == node || nullptr == node->prev || nullptr == node->next)
@@ -398,13 +427,13 @@ namespace wtr
 			}
 
 			NodeBase* prev = node->prev;
-			Node* newNode = new (std::nothrow) Node;
+
+			Node* newNode = new (std::nothrow) Node(std::forward<Args>(args)...);
 			if (nullptr == newNode)
 			{
 				return End();
 			}
 
-			newNode->item = item;
 			newNode->prev = prev;
 			newNode->next = node;
 
@@ -445,7 +474,7 @@ namespace wtr
 		Iterator Find(const T& item)
 		{
 			NodeBase* node = m_end.next;
-			while (node != m_end)
+			while (node != &m_end)
 			{
 				const T& nodeItem = static_cast<Node*>(node)->item;
 				if (nodeItem == item)

@@ -115,7 +115,7 @@ namespace wtr
 
 					BaseIterator itr = *this;
 					itr.m_index = static_cast<size_t>(newIndex);
-					
+
 					return itr;
 				}
 				else
@@ -215,7 +215,7 @@ namespace wtr
 				m_size = other.m_size;
 				m_capacity = other.m_size;
 
-				m_data = static_cast<T*>(m_allocator.Allocate(sizeof(T) * m_capacity));
+				m_data = static_cast<T*>(m_allocator.Allocate(sizeof(T) * m_capacity, alignof(T)));
 
 				for (size_t index = 0; index < m_size; index++)
 				{
@@ -250,7 +250,7 @@ namespace wtr
 					if (m_capacity < other.m_size)
 					{
 						m_allocator.Deallocate(m_data);
-						m_data = static_cast<T*>(m_allocator.Allocate(sizeof(T) * other.m_size));
+						m_data = static_cast<T*>(m_allocator.Allocate(sizeof(T) * other.m_size, alignof(T)));
 					}
 
 					m_size = other.m_size;
@@ -325,7 +325,7 @@ namespace wtr
 		T& At(const size_t index)
 		{
 			assert(index < m_size && "The array is empty, failed to get data");
-			
+
 			return m_data[index];
 		}
 
@@ -380,6 +380,11 @@ namespace wtr
 			EmplaceBack(data);
 		}
 
+		void PushBack(T&& data)
+		{
+			EmplaceBack(std::move(data));
+		}
+
 		void PopBack()
 		{
 			if (0 != m_size && nullptr != m_data)
@@ -408,7 +413,7 @@ namespace wtr
 		{
 			return m_size == 0;
 		}
-		
+
 		size_t Size() const
 		{
 			return m_size;
@@ -496,7 +501,7 @@ namespace wtr
 		{
 			if (newCapacity > m_capacity)
 			{
-				T* newData = static_cast<T*>(m_allocator.Allocate(sizeof(T) * newCapacity));
+				T* newData = static_cast<T*>(m_allocator.Allocate(sizeof(T) * newCapacity, alignof(T)));
 
 				for (size_t index = 0; index < m_size; index++)
 				{
@@ -530,7 +535,7 @@ namespace wtr
 		{
 			Clear();
 			Resize(count);
-		
+
 			for (size_t index = 0; index < count; index++)
 			{
 				m_data[index] = value;
@@ -549,7 +554,7 @@ namespace wtr
 				EmplaceBack(element);
 			}
 		}
-		
+
 	public :
 		Iterator Insert(ConstIterator pos, T&& value)
 		{
